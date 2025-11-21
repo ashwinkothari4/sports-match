@@ -1,273 +1,229 @@
--- Initial schema, functions and RLS for SportsMatch
-
--- Enable extensions
+-- Enable necessary extensions
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-CREATE EXTENSION IF NOT EXISTS postgis;
+CREATE EXTENSION IF NOT EXISTS "postgis";
 
 -- Users table
-CREATE TABLE IF NOT EXISTS users (
-  id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
-  email text UNIQUE NOT NULL,
-  username varchar(64),
-  avatar_url text,
-  elo integer DEFAULT 1200,
-  playstyle varchar(32) DEFAULT 'casual',
-  wins integer DEFAULT 0,
-  losses integer DEFAULT 0,
-  total_matches integer DEFAULT 0,
-  subscription_tier varchar(32) DEFAULT 'free',
-  stripe_customer_id text,
-  stripe_subscription_id text,
-  availability jsonb DEFAULT '{}'::jsonb,
-  created_at timestamptz DEFAULT now(),
-  updated_at timestamptz DEFAULT now()
+CREATE TABLE users (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    username VARCHAR(50) UNIQUE NOT NULL,
+    avatar_url TEXT,
+    elo INTEGER DEFAULT 1200,
+    playstyle VARCHAR(20) CHECK (playstyle IN ('competitive', 'casual', 'friendly')),
+    wins INTEGER DEFAULT 0,
+    losses INTEGER DEFAULT 0,
+    total_matches INTEGER DEFAULT 0,
+    subscription_tier VARCHAR(20) DEFAULT 'free' CHECK (subscription_tier IN ('free', 'play_plus', 'elite')),
+    stripe_customer_id TEXT,
+    stripe_subscription_id TEXT,
+    availability JSONB DEFAULT '{}',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Courts
-CREATE TABLE IF NOT EXISTS courts (
-  id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
-  name varchar(255),
-  latitude decimal,
-  longitude decimal,
-  outdoor boolean DEFAULT true,
-  image_url text,
-  created_at timestamptz DEFAULT now(),
-  updated_at timestamptz DEFAULT now()
+-- Courts table
+CREATE TABLE courts (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    latitude DECIMAL(10, 8) NOT NULL,
+    longitude DECIMAL(11, 8) NOT NULL,
+    outdoor BOOLEAN DEFAULT true,
+    image_url TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Matches
-CREATE TABLE IF NOT EXISTS matches (
-  id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
-  creator_id uuid REFERENCES users(id) ON DELETE CASCADE,
-  opponent_id uuid REFERENCES users(id) ON DELETE SET NULL,
-  sport varchar(64) DEFAULT 'basketball',
-  court_id uuid REFERENCES courts(id) ON DELETE SET NULL,
-  scheduled_time timestamptz,
-  status varchar(32) DEFAULT 'scheduled',
-  match_score jsonb DEFAULT '{}'::jsonb,
-  midpoint jsonb DEFAULT '{}'::jsonb,
-  created_at timestamptz DEFAULT now(),
-  updated_at timestamptz DEFAULT now()
+-- Matches table
+CREATE TABLE matches (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    creator_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    opponent_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    sport VARCHAR(20) DEFAULT 'basketball' CHECK (sport = 'basketball'),
+    court_id UUID REFERENCES courts(id) ON DELETE SET NULL,
+    scheduled_time TIMESTAMP WITH TIME ZONE NOT NULL,
+    status VARCHAR(20) DEFAULT 'scheduled' CHECK (status IN ('scheduled', 'in_progress', 'completed', 'expired')),
+    midpoint_location GEOGRAPHY(POINT, 4326),
+    match_score JSONB DEFAULT '{}',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Match history
-CREATE TABLE IF NOT EXISTS match_history (
-  id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
-  match_id uuid REFERENCES matches(id) ON DELETE CASCADE,
-  user1_id uuid REFERENCES users(id) ON DELETE CASCADE,
-  user2_id uuid REFERENCES users(id) ON DELETE CASCADE,
-  user1_elo_before integer,
-  user1_elo_after integer,
-  user2_elo_before integer,
-  user2_elo_after integer,
-  created_at timestamptz DEFAULT now()
+-- Seasons table
+CREATE TABLE seasons (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    start_date DATE NOT NULL,
+    end_date DATE NOT NULL,
+    active BOOLEAN DEFAULT false,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Achievements
-CREATE TABLE IF NOT EXISTS achievements (
-  id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
-  name varchar(128),
-  description text,
-  icon text,
-  requirement_type varchar(32),
-  requirement_value integer,
-  created_at timestamptz DEFAULT now()
+-- Match History table
+CREATE TABLE match_history (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    match_id UUID REFERENCES matches(id) ON DELETE CASCADE,
+    user1_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    user2_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    user1_elo_before INTEGER NOT NULL,
+    user1_elo_after INTEGER NOT NULL,
+    user2_elo_before INTEGER NOT NULL,
+    user2_elo_after INTEGER NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
-CREATE TABLE IF NOT EXISTS user_achievements (
-  id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
-  user_id uuid REFERENCES users(id) ON DELETE CASCADE,
-  achievement_id uuid REFERENCES achievements(id) ON DELETE CASCADE,
-  earned_at timestamptz DEFAULT now()
+-- Achievements table
+CREATE TABLE achievements (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    description TEXT NOT NULL,
+    icon VARCHAR(50) NOT NULL,
+    requirement_type VARCHAR(20) CHECK (requirement_type IN ('wins', 'elo', 'matches', 'streak')),
+    requirement_value INTEGER NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Friends
-CREATE TABLE IF NOT EXISTS friends (
-  id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
-  user_id uuid REFERENCES users(id) ON DELETE CASCADE,
-  friend_id uuid REFERENCES users(id) ON DELETE CASCADE,
-  status varchar(16) DEFAULT 'pending',
-  created_at timestamptz DEFAULT now()
+-- User Achievements table
+CREATE TABLE user_achievements (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    achievement_id UUID REFERENCES achievements(id) ON DELETE CASCADE,
+    earned_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    UNIQUE(user_id, achievement_id)
 );
 
--- Notifications
-CREATE TABLE IF NOT EXISTS notifications (
-  id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
-  user_id uuid REFERENCES users(id) ON DELETE CASCADE,
-  type varchar(64),
-  title text,
-  message text,
-  metadata jsonb DEFAULT '{}'::jsonb,
-  seen boolean DEFAULT false,
-  created_at timestamptz DEFAULT now()
+-- Friends table
+CREATE TABLE friends (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    friend_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'accepted', 'rejected')),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    UNIQUE(user_id, friend_id)
 );
 
--- Public users view (safe columns)
-DROP VIEW IF EXISTS public_users;
-CREATE VIEW public_users AS
-SELECT 
-  id, username, avatar_url, elo, playstyle, wins, losses, total_matches, created_at,
-  CASE WHEN total_matches > 0 THEN ROUND((wins::decimal / total_matches) * 100,1) ELSE 0 END as win_rate
-FROM users;
-
--- RLS policies
-ALTER TABLE users ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Users can update own profile" ON users FOR UPDATE USING (auth.uid() = id);
-CREATE POLICY "Users can insert own profile" ON users FOR INSERT WITH CHECK (auth.uid() = id);
--- Allow select from users table (public selects should use public_users view, but keeping a safe default)
-CREATE POLICY "Users public select" ON users FOR SELECT USING (auth.role() = 'authenticated' OR true);
-
-ALTER TABLE matches ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Users can view relevant matches" ON matches FOR SELECT USING (
-  auth.uid() = creator_id OR auth.uid() = opponent_id OR status = 'completed'
+-- Notifications table
+CREATE TABLE notifications (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    type VARCHAR(50) NOT NULL,
+    title VARCHAR(255) NOT NULL,
+    message TEXT NOT NULL,
+    read BOOLEAN DEFAULT false,
+    metadata JSONB DEFAULT '{}',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
-CREATE POLICY "Users can create matches" ON matches FOR INSERT WITH CHECK (auth.uid() = creator_id);
-CREATE POLICY "Match participants can update matches" ON matches FOR UPDATE USING (auth.uid() = creator_id OR auth.uid() = opponent_id);
-
-ALTER TABLE friends ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Users can manage their friend relationships" ON friends FOR ALL USING (auth.uid() = user_id);
-CREATE POLICY "Users can view friendships they are part of" ON friends FOR SELECT USING (auth.uid() = user_id OR auth.uid() = friend_id);
-
-ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Users can access their notifications" ON notifications FOR SELECT USING (auth.uid() = user_id);
-CREATE POLICY "Users can insert notifications" ON notifications FOR INSERT WITH CHECK (auth.uid() = user_id);
 
 -- Indexes for performance
-CREATE INDEX IF NOT EXISTS idx_users_elo ON users(elo);
-CREATE INDEX IF NOT EXISTS idx_courts_lat_lng ON courts(latitude, longitude);
-CREATE INDEX IF NOT EXISTS idx_matches_scheduled ON matches(scheduled_time);
+CREATE INDEX idx_users_elo ON users(elo);
+CREATE INDEX idx_users_location ON users USING GIST((ST_SetSRID(ST_MakePoint(0, 0), 4326)));
+CREATE INDEX idx_matches_creator_id ON matches(creator_id);
+CREATE INDEX idx_matches_opponent_id ON matches(opponent_id);
+CREATE INDEX idx_matches_scheduled_time ON matches(scheduled_time);
+CREATE INDEX idx_matches_status ON matches(status);
+CREATE INDEX idx_matches_location ON matches USING GIST(midpoint_location);
+CREATE INDEX idx_match_history_user1_id ON match_history(user1_id);
+CREATE INDEX idx_match_history_user2_id ON match_history(user2_id);
+CREATE INDEX idx_match_history_created_at ON match_history(created_at);
+CREATE INDEX idx_friends_user_id ON friends(user_id);
+CREATE INDEX idx_friends_friend_id ON friends(friend_id);
+CREATE INDEX idx_friends_status ON friends(status);
+CREATE INDEX idx_courts_location ON courts USING GIST(ST_SetSRID(ST_MakePoint(longitude, latitude), 4326));
+CREATE INDEX idx_notifications_user_id ON notifications(user_id);
+CREATE INDEX idx_notifications_read ON notifications(read);
 
--- Functions: get_courts_in_radius and find_nearby_users_simple
-CREATE OR REPLACE FUNCTION get_courts_in_radius(
-  lat decimal,
-  lng decimal,
-  radius_km integer DEFAULT 10
-)
-RETURNS TABLE(
-  id uuid,
-  name varchar,
-  latitude decimal,
-  longitude decimal,
-  outdoor boolean,
-  image_url text,
-  distance_km decimal
-) 
-LANGUAGE plpgsql
-AS $$
+-- RLS Policies
+ALTER TABLE users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE matches ENABLE ROW LEVEL SECURITY;
+ALTER TABLE courts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE seasons ENABLE ROW LEVEL SECURITY;
+ALTER TABLE match_history ENABLE ROW LEVEL SECURITY;
+ALTER TABLE achievements ENABLE ROW LEVEL SECURITY;
+ALTER TABLE user_achievements ENABLE ROW LEVEL SECURITY;
+ALTER TABLE friends ENABLE ROW LEVEL SECURITY;
+ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
+
+-- Users policies
+CREATE POLICY "Users can view all profiles" ON users
+    FOR SELECT USING (true);
+
+CREATE POLICY "Users can update own profile" ON users
+    FOR UPDATE USING (auth.uid() = id);
+
+CREATE POLICY "Users can insert own profile" ON users
+    FOR INSERT WITH CHECK (auth.uid() = id);
+
+-- Matches policies
+CREATE POLICY "Anyone can view matches" ON matches
+    FOR SELECT USING (true);
+
+CREATE POLICY "Users can create matches" ON matches
+    FOR INSERT WITH CHECK (auth.uid() = creator_id);
+
+CREATE POLICY "Match participants can update matches" ON matches
+    FOR UPDATE USING (auth.uid() = creator_id OR auth.uid() = opponent_id);
+
+-- Courts policies
+CREATE POLICY "Anyone can view courts" ON courts
+    FOR SELECT USING (true);
+
+CREATE POLICY "Only admins can modify courts" ON courts
+    FOR ALL USING (auth.jwt() ->> 'email' = 'admin@sportsmatch.com');
+
+-- Match History policies
+CREATE POLICY "Anyone can view match history" ON match_history
+    FOR SELECT USING (true);
+
+CREATE POLICY "Only system can insert match history" ON match_history
+    FOR INSERT WITH CHECK (auth.role() = 'service_role');
+
+-- Friends policies
+CREATE POLICY "Users can view their friends" ON friends
+    FOR SELECT USING (auth.uid() = user_id OR auth.uid() = friend_id);
+
+CREATE POLICY "Users can manage their friend relationships" ON friends
+    FOR ALL USING (auth.uid() = user_id);
+
+-- Notifications policies
+CREATE POLICY "Users can view their notifications" ON notifications
+    FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can update their notifications" ON notifications
+    FOR UPDATE USING (auth.uid() = user_id);
+
+-- Insert initial achievements
+INSERT INTO achievements (name, description, icon, requirement_type, requirement_value) VALUES
+    ('First Win', 'Win your first match', '🏆', 'wins', 1),
+    ('Rookie', 'Play 10 matches', '🎯', 'matches', 10),
+    ('Veteran', 'Play 50 matches', '⭐', 'matches', 50),
+    ('Champion', 'Play 100 matches', '👑', 'matches', 100),
+    ('Rising Star', 'Reach 1400 ELO', '🚀', 'elo', 1400),
+    ('Expert', 'Reach 1600 ELO', '🎯', 'elo', 1600),
+    ('Master', 'Reach 1800 ELO', '🏅', 'elo', 1800),
+    ('Grandmaster', 'Reach 2000 ELO', '💎', 'elo', 2000),
+    ('Win Streak', 'Win 5 matches in a row', '🔥', 'streak', 5),
+    ('Competitor', 'Win 25 matches', '⚔️', 'wins', 25),
+    ('Dominator', 'Win 100 matches', '👊', 'wins', 100);
+
+-- Insert sample courts
+INSERT INTO courts (name, latitude, longitude, outdoor, image_url) VALUES
+    ('Downtown Court', 40.7128, -74.0060, true, 'https://images.unsplash.com/photo-1544919982-9b7ce4ad-4b6e?ixlib=rb-4.0.3'),
+    ('Central Park Court', 40.7812, -73.9665, true, 'https://images.unsplash.com/photo-1504450758481-7338eba7524a?ixlib=rb-4.0.3'),
+    ('Sports Complex', 40.7505, -73.9934, false, 'https://images.unsplash.com/photo-1518604666860-9ed391f76460?ixlib=rb-4.0.3');
+
+-- Create updated_at triggers
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
 BEGIN
-  RETURN QUERY
-  SELECT 
-    c.id,
-    c.name,
-    c.latitude,
-    c.longitude,
-    c.outdoor,
-    c.image_url,
-    ST_Distance(
-      ST_SetSRID(ST_MakePoint(lng, lat), 4326)::geography,
-      ST_SetSRID(ST_MakePoint(c.longitude, c.latitude), 4326)::geography
-    ) / 1000 as distance_km
-  FROM courts c
-  WHERE ST_Distance(
-    ST_SetSRID(ST_MakePoint(lng, lat), 4326)::geography,
-    ST_SetSRID(ST_MakePoint(c.longitude, c.latitude), 4326)::geography
-  ) <= radius_km * 1000
-  ORDER BY distance_km ASC;
+    NEW.updated_at = NOW();
+    RETURN NEW;
 END;
-$$;
+$$ language 'plpgsql';
 
-CREATE OR REPLACE FUNCTION find_nearby_users_simple(
-  user_lat decimal,
-  user_lon decimal,
-  max_distance integer DEFAULT 10,
-  current_user_id uuid DEFAULT NULL,
-  min_elo integer DEFAULT 1000,
-  max_elo integer DEFAULT 2000
-)
-RETURNS TABLE(
-  id uuid,
-  username varchar,
-  avatar_url text,
-  elo integer,
-  playstyle varchar,
-  wins integer,
-  losses integer,
-  total_matches integer,
-  latitude decimal,
-  longitude decimal,
-  distance decimal
-) 
-LANGUAGE plpgsql
-AS $$
-BEGIN
-  RETURN QUERY
-  SELECT 
-    u.id,
-    u.username,
-    u.avatar_url,
-    u.elo,
-    u.playstyle,
-    u.wins,
-    u.losses,
-    u.total_matches,
-    40.7128 as latitude,
-    -74.0060 as longitude,
-    ST_Distance(
-      ST_SetSRID(ST_MakePoint(user_lon, user_lat), 4326)::geography,
-      ST_SetSRID(ST_MakePoint(-74.0060, 40.7128), 4326)::geography
-    ) / 1000 as distance
-  FROM users u
-  WHERE u.id != current_user_id
-    AND u.elo BETWEEN min_elo AND max_elo
-    AND u.subscription_tier != 'free'
-  ORDER BY ABS(u.elo - (min_elo + max_elo)/2) ASC, RANDOM()
-  LIMIT 20;
-END;
-$$;
+CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
--- Ensure foreign keys for matches are set
-ALTER TABLE matches
-  DROP CONSTRAINT IF EXISTS matches_creator_id_fkey,
-  DROP CONSTRAINT IF EXISTS matches_opponent_id_fkey,
-  DROP CONSTRAINT IF EXISTS matches_court_id_fkey;
+CREATE TRIGGER update_matches_updated_at BEFORE UPDATE ON matches
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
-ALTER TABLE matches
-  ADD CONSTRAINT matches_creator_id_fkey FOREIGN KEY (creator_id) REFERENCES users(id) ON DELETE CASCADE,
-  ADD CONSTRAINT matches_opponent_id_fkey FOREIGN KEY (opponent_id) REFERENCES users(id) ON DELETE SET NULL,
-  ADD CONSTRAINT matches_court_id_fkey FOREIGN KEY (court_id) REFERENCES courts(id) ON DELETE SET NULL;
-
--- Ensure other FKs for match_history and user_achievements
-ALTER TABLE match_history
-  DROP CONSTRAINT IF EXISTS match_history_match_id_fkey;
-
-ALTER TABLE match_history
-  ADD CONSTRAINT match_history_match_id_fkey FOREIGN KEY (match_id) REFERENCES matches(id) ON DELETE CASCADE;
-ALTER TABLE match_history
-  DROP CONSTRAINT IF EXISTS match_history_user1_id_fkey;
-ALTER TABLE match_history
-  ADD CONSTRAINT match_history_user1_id_fkey FOREIGN KEY (user1_id) REFERENCES users(id) ON DELETE CASCADE;
-ALTER TABLE match_history
-  DROP CONSTRAINT IF EXISTS match_history_user2_id_fkey;
-ALTER TABLE match_history
-  ADD CONSTRAINT match_history_user2_id_fkey FOREIGN KEY (user2_id) REFERENCES users(id) ON DELETE CASCADE;
-
--- Add constraints for availability JSON structure
-ALTER TABLE users DROP CONSTRAINT IF EXISTS valid_availability_format;
-ALTER TABLE users ADD CONSTRAINT valid_availability_format CHECK (
-  availability IS NULL OR (
-    jsonb_typeof(availability) = 'object' AND
-    availability ? 'preferred_times' AND
-    availability ? 'preferred_days' AND
-    availability ? 'timezone'
-  )
-);
-
--- Seed example achievements (optional)
-INSERT INTO achievements (name, description, icon, requirement_type, requirement_value)
-  SELECT 'Five Wins', 'Awarded after 5 wins', '🏅', 'wins', 5
-  WHERE NOT EXISTS (SELECT 1 FROM achievements WHERE name = 'Five Wins');
-
-INSERT INTO achievements (name, description, icon, requirement_type, requirement_value)
-  SELECT 'ELO 1000', 'Reach 1000 ELO', '🔥', 'elo', 1000
-  WHERE NOT EXISTS (SELECT 1 FROM achievements WHERE name = 'ELO 1000');
-
+CREATE TRIGGER update_friends_updated_at BEFORE UPDATE ON friends
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
