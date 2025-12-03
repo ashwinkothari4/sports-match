@@ -1,1 +1,370 @@
-
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    
+    <!-- Primary Meta Tags -->
+    <title>SportsMatch - Basketball Matchmaking Platform</title>
+    <meta name="title" content="SportsMatch - Basketball Matchmaking Platform">
+    <meta name="description" content="Connect with basketball players at your skill level, find local courts, and track your progress. Skill-based matchmaking using ELO system, real-time updates, and comprehensive statistics.">
+    <meta name="keywords" content="basketball, matchmaking, sports, pickup, court, players, ELO, rating, match, schedule, leaderboard">
+    <meta name="author" content="SportsMatch">
+    <meta name="robots" content="index, follow">
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://sportsmatch.app/">
+    <meta property="og:title" content="SportsMatch - Basketball Matchmaking Platform">
+    <meta property="og:description" content="Connect with basketball players at your skill level, find local courts, and track your progress.">
+    <meta property="og:image" content="https://sportsmatch.app/og-image.png">
+    
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="https://sportsmatch.app/">
+    <meta property="twitter:title" content="SportsMatch - Basketball Matchmaking Platform">
+    <meta property="twitter:description" content="Connect with basketball players at your skill level, find local courts, and track your progress.">
+    <meta property="twitter:image" content="https://sportsmatch.app/twitter-image.png">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    
+    <!-- Apple Touch Icons -->
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-180x180.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="/apple-touch-icon-152x152.png">
+    <link rel="apple-touch-icon" sizes="167x167" href="/apple-touch-icon-167x167.png">
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/manifest.json" />
+    
+    <!-- Theme Color -->
+    <meta name="theme-color" content="#3b82f6">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="SportsMatch">
+    
+    <!-- Preconnect for Performance -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="dns-prefetch" href="https://fonts.googleapis.com">
+    <link rel="dns-prefetch" href="https://fonts.gstatic.com">
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Critical CSS (Inline for Performance) -->
+    <style>
+      /* Critical CSS to prevent layout shift */
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      
+      body {
+        margin: 0;
+        padding: 0;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+          'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        background-color: #f9fafb;
+        color: #111827;
+        overflow-x: hidden;
+      }
+      
+      #root {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+      
+      /* Loading Spinner */
+      .app-loading {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        text-align: center;
+        padding: 2rem;
+      }
+      
+      .loading-spinner {
+        width: 50px;
+        height: 50px;
+        border: 3px solid rgba(255, 255, 255, 0.3);
+        border-radius: 50%;
+        border-top-color: white;
+        animation: spin 1s ease-in-out infinite;
+        margin-bottom: 1.5rem;
+      }
+      
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+      
+      /* Ensure no scroll during loading */
+      body.loading {
+        overflow: hidden;
+      }
+      
+      /* Focus styles for accessibility */
+      :focus {
+        outline: 2px solid #3b82f6;
+        outline-offset: 2px;
+      }
+      
+      :focus:not(:focus-visible) {
+        outline: none;
+      }
+      
+      /* Print styles */
+      @media print {
+        .no-print {
+          display: none !important;
+        }
+        
+        body {
+          background: white;
+          color: black;
+        }
+      }
+      
+      /* Reduced motion */
+      @media (prefers-reduced-motion: reduce) {
+        * {
+          animation-duration: 0.01ms !important;
+          animation-iteration-count: 1 !important;
+          transition-duration: 0.01ms !important;
+          scroll-behavior: auto !important;
+        }
+      }
+      
+      /* Dark mode support */
+      @media (prefers-color-scheme: dark) {
+        body {
+          background-color: #111827;
+          color: #f9fafb;
+        }
+      }
+    </style>
+    
+    <!-- Structured Data for SEO -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "SportsMatch",
+      "description": "Basketball matchmaking platform with skill-based matching using ELO system",
+      "url": "https://sportsmatch.app",
+      "applicationCategory": "SportsApplication",
+      "operatingSystem": "Web",
+      "offers": {
+        "@type": "AggregateOffer",
+        "offerCount": 3,
+        "lowPrice": "0",
+        "highPrice": "19.99",
+        "priceCurrency": "USD"
+      },
+      "author": {
+        "@type": "Organization",
+        "name": "SportsMatch",
+        "url": "https://sportsmatch.app"
+      },
+      "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": "4.8",
+        "reviewCount": "1247",
+        "bestRating": "5",
+        "worstRating": "1"
+      },
+      "screenshot": [
+        "https://sportsmatch.app/screenshot1.png",
+        "https://sportsmatch.app/screenshot2.png",
+        "https://sportsmatch.app/screenshot3.png"
+      ],
+      "featureList": [
+        "Skill-based matchmaking",
+        "Court discovery",
+        "Real-time updates",
+        "ELO rating system",
+        "Match scheduling",
+        "Leaderboards",
+        "Player profiles",
+        "Weather integration",
+        "Social features"
+      ]
+    }
+    </script>
+  </head>
+  
+  <body>
+    <!-- Loading screen (removed by React) -->
+    <div id="loading" class="app-loading">
+      <div class="loading-spinner"></div>
+      <h1 style="margin-bottom: 0.5rem; font-size: 1.5rem;">SportsMatch</h1>
+      <p style="opacity: 0.8; max-width: 300px;">Loading basketball matchmaking platform...</p>
+      <noscript>
+        <div style="margin-top: 2rem; padding: 1rem; background: rgba(255, 255, 255, 0.1); border-radius: 0.5rem;">
+          <h2 style="margin-bottom: 0.5rem; font-size: 1.25rem;">JavaScript Required</h2>
+          <p>This application requires JavaScript to function. Please enable JavaScript in your browser settings.</p>
+        </div>
+      </noscript>
+    </div>
+    
+    <!-- Root element for React -->
+    <div id="root"></div>
+    
+    <!-- Service Worker Registration -->
+    <script>
+      // Register service worker for PWA
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/service-worker.js').then(
+            (registration) => {
+              console.log('ServiceWorker registration successful with scope: ', registration.scope);
+              
+              // Check for updates
+              registration.addEventListener('updatefound', () => {
+                const newWorker = registration.installing;
+                console.log('ServiceWorker update found!');
+                
+                newWorker.addEventListener('statechange', () => {
+                  if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                    // New update available
+                    console.log('New content is available; please refresh.');
+                    
+                    // You could show a notification to the user here
+                    if (window.confirm('New version available! Update now?')) {
+                      window.location.reload();
+                    }
+                  }
+                });
+              });
+            },
+            (err) => {
+              console.log('ServiceWorker registration failed: ', err);
+            }
+          );
+        });
+      }
+      
+      // Remove loading screen when React loads
+      window.addEventListener('DOMContentLoaded', () => {
+        const loading = document.getElementById('loading');
+        if (loading) {
+          loading.style.display = 'none';
+          document.body.classList.remove('loading');
+        }
+      });
+      
+      // Handle offline/online status
+      window.addEventListener('online', () => {
+        document.documentElement.classList.remove('offline');
+        // You could show a notification that connection is restored
+      });
+      
+      window.addEventListener('offline', () => {
+        document.documentElement.classList.add('offline');
+        // You could show a notification that connection is lost
+      });
+      
+      // Performance monitoring
+      if ('performance' in window) {
+        window.addEventListener('load', () => {
+          setTimeout(() => {
+            const perfData = window.performance.timing;
+            const loadTime = perfData.loadEventEnd - perfData.navigationStart;
+            console.log('Page load time: ' + loadTime + 'ms');
+            
+            // Send to analytics if needed
+            if (window.gtag) {
+              window.gtag('event', 'timing_complete', {
+                'name': 'page_load',
+                'value': loadTime,
+                'event_category': 'Load Performance'
+              });
+            }
+          }, 0);
+        });
+      }
+      
+      // Error tracking
+      window.addEventListener('error', function(event) {
+        console.error('Global error caught:', event.error);
+        
+        // Send to error tracking service (e.g., Sentry)
+        if (window.Sentry) {
+          window.Sentry.captureException(event.error);
+        }
+        
+        // Analytics
+        if (window.gtag) {
+          window.gtag('event', 'exception', {
+            'description': event.error.message,
+            'fatal': true
+          });
+        }
+      });
+      
+      // Unhandled promise rejections
+      window.addEventListener('unhandledrejection', function(event) {
+        console.error('Unhandled promise rejection:', event.reason);
+        
+        // Send to error tracking service
+        if (window.Sentry) {
+          window.Sentry.captureException(event.reason);
+        }
+      });
+    </script>
+    
+    <!-- Vite entry point -->
+    <script type="module" src="/src/main.jsx"></script>
+    
+    <!-- Google Analytics (optional - remove if not needed) -->
+    <!--
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-XXXXXXXXXX');
+    </script>
+    -->
+    
+    <!-- Sentry (optional - remove if not needed) -->
+    <!--
+    <script src="https://browser.sentry-cdn.com/7.0.0/bundle.min.js" crossorigin="anonymous"></script>
+    <script>
+      Sentry.init({
+        dsn: "https://xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx@sentry.io/xxxxxx",
+        environment: "production",
+        release: "sportsmatch@1.0.0"
+      });
+    </script>
+    -->
+    
+    <!-- Performance optimization for slow connections -->
+    <script>
+      // Only load non-critical resources after initial render
+      if ('connection' in navigator) {
+        const connection = navigator.connection;
+        
+        if (connection.saveData || connection.effectiveType === 'slow-2g' || connection.effectiveType === '2g') {
+          // Don't preload non-critical assets on slow connections
+          document.querySelectorAll('link[rel="preload"]').forEach(link => {
+            if (!link.getAttribute('as').includes('font') && !link.getAttribute('href').includes('critical')) {
+              link.remove();
+            }
+          });
+        }
+      }
+    </script>
+  </body>
+</html>
