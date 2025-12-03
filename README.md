@@ -1,12 +1,43 @@
-SportsMatch (Final corrected)
-This archive contains the corrected, Supabase-integrated version of the SportsMatch app.
+# 🏀 SportsMatch - Basketball Matchmaking Platform
 
-Structure:
-- supabase/migrations/001_initial_schema.sql : full schema + functions + RLS + migrations
-- supabase/functions/* : Edge Functions (TypeScript) ready to deploy
-- src/ : Frontend React + Vite app (select files updated to use secure views & realtime)
-- scripts/deploy_instructions.txt : short deploy steps and env vars to set
+A full-stack basketball matchmaking platform with skill-based matching using ELO system, real-time updates, and comprehensive player analytics.
 
-Notes:
-- This repo is Supabase-first. No Express/Mongo files are included.
-- Before deploying, set your Supabase secrets and Stripe/Resend/OpenWeather keys as described in scripts/deploy_instructions.txt
+## 🚀 Features
+
+- **Skill-Based Matchmaking**: ELO rating system for fair matches
+- **Real-Time Updates**: Live match updates and notifications
+- **Court Discovery**: Find basketball courts near you
+- **Player Profiles**: Track stats, achievements, and history
+- **Social Features**: Friends, activity feed, leaderboards
+- **Subscription Tiers**: Free, Play+, and Elite plans
+- **Weather Integration**: Outdoor court weather alerts
+- **PWA Support**: Installable on mobile devices
+
+## 🏗️ Tech Stack
+
+### Frontend
+- React 18 + Vite
+- TailwindCSS
+- React Router
+- Recharts (analytics)
+- Lucide React (icons)
+
+### Backend (Supabase)
+- PostgreSQL Database
+- Row Level Security
+- Edge Functions (TypeScript)
+- Realtime Subscriptions
+- Authentication
+- Storage (avatars, court images)
+
+### External Services
+- Stripe (payments)
+- Resend (emails)
+- OpenWeatherMap (weather)
+
+## 📦 Installation
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/yourusername/sportsmatch.git
+   cd sportsmatch
